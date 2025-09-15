@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.yvan.book.common.PageResponse;
+import com.yvan.book.exception.OperationNotPermittedException;
 import com.yvan.book.file.FileStorageService;
 import com.yvan.book.history.BookTransactionHistory;
 import com.yvan.book.history.BookTransactionHistoryRepository;
@@ -11,6 +12,7 @@ import com.yvan.book.history.BookTransactionHistoryRepository;
 import jakarta.persistence.EntityNotFoundException;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -123,5 +125,18 @@ public class BookService {
                 books.isLast()
         );
     }
+
+    public Integer updateShareableStatus(Integer bookId, Authentication connectedUser) {
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new EntityNotFoundException("No book found with ID:: " + bookId));
+        // User user = ((User) connectedUser.getPrincipal());
+        if (!Objects.equals(book.getCreatedBy(), connectedUser.getName())) {
+            throw new OperationNotPermittedException("You cannot update others books shareable status");
+        }
+        book.setShareable(!book.isShareable());
+        bookRepository.save(book);
+        return bookId;
+    }
+    
 
 }
